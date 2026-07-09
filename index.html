@@ -434,10 +434,49 @@
   let intervalSeconds = 60;
   let remainingInterval = 60;
   let remainingTotal = 3000;
+  let totalDurationSeconds = 3000;
   let expectedRings = 50;
   let ringCount = 0;
   let timerId = null;
   let isPaused = false;
+  let startEpoch = null;
+  let pausedAt = null;
+  let totalPausedMs = 0;
+
+  const STORAGE_KEY = 'eatWellTimerState_v1';
+
+  function saveState(){
+    try{
+      const state = {
+        intervalSeconds, totalDurationSeconds, expectedRings,
+        startEpoch, totalPausedMs, isPaused, pausedAt
+      };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    }catch(e){}
+  }
+
+  function clearState(){
+    try{ localStorage.removeItem(STORAGE_KEY); }catch(e){}
+  }
+
+  function loadState(){
+    try{
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return null;
+      return JSON.parse(raw);
+    }catch(e){ return null; }
+  }
+
+  // Elapsed real time since the run started, minus any time spent paused.
+  // Using wall-clock timestamps (instead of just counting setInterval ticks)
+  // means the countdown stays accurate even if the screen locks/times out
+  // and the browser throttles or suspends the JS timer in the background.
+  function computeElapsedSeconds(){
+    if (!startEpoch) return 0;
+    const now = Date.now();
+    const pausedMs = totalPausedMs + (isPaused && pausedAt ? (now - pausedAt) : 0);
+    return Math.max(0, (now - startEpoch - pausedMs) / 1000);
+  }
   let audioCtx = null;
   let ringDots = [];
   let soundMode = 'song';
@@ -623,38 +662,56 @@
   }
 
   function tick(){
-    if (isPaused) return;
-    remainingTotal -= 1;
-    remainingInterval -= 1;
+    if (!startEpoch || !timerId) return;
 
-    if (remainingTotal <= 0){
+    const elapsed = computeElapsedSeconds();
+    const newRemainingTotal = totalDurationSeconds - elapsed;
+
+    if (newRemainingTotal <= 0){
       remainingTotal = 0;
+      remainingInterval = 0;
       nextRingEl.textContent = fmt(0);
       totalRemainEl.textContent = fmt(0);
       dialProgress.style.strokeDashoffset = CIRC;
       dialProgress.classList.add('done');
       readoutLabel.textContent = 'all done';
+      if (ringCount < expectedRings){
+        ringCount = expectedRings;
+        ringCountLabel.textContent = ringCount + ' / ' + expectedRings;
+        updateRingProgressVisual();
+      }
       statusMsg.textContent = "Done — hope you ate well! Love you, mumma.";
       clearInterval(timerId);
       timerId = null;
       pauseBtn.style.display = 'none';
       playApplause();
       heartBurst(80);
+      clearState();
       return;
     }
 
-    if (remainingInterval <= 0){
-      ringCount += 1;
+    remainingTotal = newRemainingTotal;
+
+    // Recompute how many interval boundaries should have been crossed by now.
+    // If the tab was backgrounded/suspended for a while, this "catches up"
+    // in one go instead of resetting to 0.
+    const targetRingCount = Math.min(expectedRings, Math.floor(elapsed / intervalSeconds));
+    if (targetRingCount > ringCount){
+      ringCount = targetRingCount;
       ringCountLabel.textContent = ringCount + ' / ' + expectedRings;
       updateRingProgressVisual();
       flashRing();
-      remainingInterval = Math.min(intervalSeconds, remainingTotal);
     }
+
+    remainingInterval = intervalSeconds - (elapsed % intervalSeconds);
+    if (remainingInterval > remainingTotal) remainingInterval = remainingTotal;
 
     const frac = remainingInterval / intervalSeconds;
     dialProgress.style.strokeDashoffset = CIRC * (1 - frac);
     nextRingEl.textContent = fmt(remainingInterval);
     totalRemainEl.textContent = fmt(remainingTotal);
+
+    saveState();
   }
 
   startBtn.addEventListener('click', () => {
@@ -665,10 +722,14 @@
 
     intervalSeconds = Math.max(1, Math.round(iv * iu));
     remainingTotal = Math.max(1, Math.round(tv * tu));
+    totalDurationSeconds = remainingTotal;
     remainingInterval = Math.min(intervalSeconds, remainingTotal);
     expectedRings = Math.max(1, Math.floor(remainingTotal / intervalSeconds));
     ringCount = 0;
     isPaused = false;
+    startEpoch = Date.now();
+    pausedAt = null;
+    totalPausedMs = 0;
 
     if (ringSound){
       ringSound.play().then(() => { ringSound.pause(); ringSound.currentTime = 0; }).catch(() => {});
@@ -698,12 +759,20 @@
 
     if (timerId) clearInterval(timerId);
     timerId = setInterval(tick, 1000);
+    saveState();
   });
 
   pauseBtn.addEventListener('click', () => {
     isPaused = !isPaused;
+    if (isPaused){
+      pausedAt = Date.now();
+    } else {
+      if (pausedAt) totalPausedMs += Date.now() - pausedAt;
+      pausedAt = null;
+    }
     pauseBtn.textContent = isPaused ? 'Resume' : 'Pause';
     statusMsg.textContent = isPaused ? 'Paused.' : '';
+    saveState();
   });
 
   resetBtn.addEventListener('click', () => {
@@ -711,6 +780,9 @@
     timerId = null;
     isPaused = false;
     ringCount = 0;
+    startEpoch = null;
+    pausedAt = null;
+    totalPausedMs = 0;
     statusMsg.textContent = '';
     dialProgress.classList.remove('done');
     dialProgress.style.strokeDashoffset = 0;
@@ -720,7 +792,56 @@
     barWrap.classList.add('hidden');
     readoutLabel.textContent = 'set your interval';
     nextRingEl.textContent = '01:00';
+    clearState();
   });
+
+  // The screen can lock/time out and the browser will throttle or fully
+  // suspend the setInterval while backgrounded. Whenever the page becomes
+  // visible/focused again, immediately recompute progress from real elapsed
+  // time so the countdown "catches up" instead of appearing stuck or reset.
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible' && timerId){
+      tick();
+    }
+  });
+  window.addEventListener('pageshow', () => {
+    if (timerId) tick();
+  });
+  window.addEventListener('focus', () => {
+    if (timerId) tick();
+  });
+
+  // If the page itself got reloaded/killed while a session was running
+  // (common on mobile when the screen times out), restore it from
+  // localStorage instead of starting back at 0.
+  (function restoreSession(){
+    const saved = loadState();
+    if (!saved || !saved.startEpoch) return;
+
+    intervalSeconds = saved.intervalSeconds;
+    totalDurationSeconds = saved.totalDurationSeconds;
+    expectedRings = saved.expectedRings;
+    startEpoch = saved.startEpoch;
+    totalPausedMs = saved.totalPausedMs || 0;
+    isPaused = !!saved.isPaused;
+    pausedAt = saved.pausedAt || null;
+    ringCount = 0;
+
+    dialProgress.classList.remove('done');
+    dialProgress.style.strokeDashoffset = 0;
+    buildTicks(expectedRings);
+    buildRingIndicator(expectedRings);
+    setupControls.classList.add('hidden');
+    runControls.classList.remove('hidden');
+    pauseBtn.style.display = 'inline-block';
+    pauseBtn.textContent = isPaused ? 'Resume' : 'Pause';
+    statusMsg.textContent = isPaused ? 'Paused.' : '';
+    readoutLabel.textContent = 'next ring in';
+
+    if (timerId) clearInterval(timerId);
+    timerId = setInterval(tick, 1000);
+    tick();
+  })();
 </script>
 </body>
 </html>
