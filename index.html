@@ -336,7 +336,7 @@
   </main>
 
   <footer class="foot-note">
-    <p>Keep this tab open — the reminder rings through your browser's audio, not a system notification.</p>
+    <p>Keep this tab open and in view — the reminder rings through your browser's audio, not a system notification. This page will try to keep your screen awake while a countdown is running, but it can't do that if you switch apps or lock your phone.</p>
   </footer>
 </div>
 <audio id="ringSound" preload="auto" src="songs/loveumommy.mp3"></audio>
@@ -378,6 +378,35 @@
   let audioCtx = null;
   let ringDots = [];
   let soundMode = 'song';
+  let wakeLock = null;
+
+  async function requestWakeLock(){
+    if (!('wakeLock' in navigator)) return;
+    try{
+      wakeLock = await navigator.wakeLock.request('screen');
+      wakeLock.addEventListener('release', () => { wakeLock = null; });
+    }catch(e){
+      // Wake lock request can fail if the tab isn't visible or the
+      // browser doesn't allow it right now — fail silently.
+      wakeLock = null;
+    }
+  }
+
+  async function releaseWakeLock(){
+    if (wakeLock){
+      try{ await wakeLock.release(); }catch(e){}
+      wakeLock = null;
+    }
+  }
+
+  // Re-acquire the wake lock if the tab becomes visible again while
+  // a countdown is still running (the OS releases it when hidden).
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible' && timerId && !isPaused){
+      requestWakeLock();
+    }
+  });
+
   const ringSound = document.getElementById('ringSound');
   const chabaoSound = document.getElementById('chabaoSound');
   const chipSong = document.getElementById('chipSong');
@@ -575,6 +604,7 @@
       clearInterval(timerId);
       timerId = null;
       pauseBtn.style.display = 'none';
+      releaseWakeLock();
       playApplause();
       heartBurst(80);
       return;
@@ -635,18 +665,25 @@
 
     if (timerId) clearInterval(timerId);
     timerId = setInterval(tick, 1000);
+    requestWakeLock();
   });
 
   pauseBtn.addEventListener('click', () => {
     isPaused = !isPaused;
     pauseBtn.textContent = isPaused ? 'Resume' : 'Pause';
     statusMsg.textContent = isPaused ? 'Paused.' : '';
+    if (isPaused){
+      releaseWakeLock();
+    } else {
+      requestWakeLock();
+    }
   });
 
   resetBtn.addEventListener('click', () => {
     if (timerId) clearInterval(timerId);
     timerId = null;
     isPaused = false;
+    releaseWakeLock();
     ringCount = 0;
     statusMsg.textContent = '';
     dialProgress.classList.remove('done');
