@@ -4,14 +4,14 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <meta name="theme-color" content="#FCE4E9" />
-<link rel="icon" type="image/png" href="icon.png">
-<link rel="apple-touch-icon" href="icon.png">
-<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" href="icon.png?v=2">
+<link rel="apple-touch-icon" href="icon.png?v=2">
+<link rel="manifest" href="manifest.json?v=2">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Eat well, mumma">
 <meta name="mobile-web-app-capable" content="yes">
-<title>Bite!</title>
+<title>Love you mumma — eat well reminder</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600&family=Inter:wght@400;500&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
@@ -257,31 +257,33 @@
   .foot-note{ margin-top:28px; text-align:center; }
   .foot-note p{ font-size:13px; color:var(--ink-faint); margin:0; text-shadow:0 1px 3px rgba(255,248,249,0.9); }
   @media (max-width:600px){
-    .page{ padding:32px 16px 32px; }
-    header{ padding:20px 18px 8px; border-radius:16px; }
-    .sub{ margin:0 0 28px; font-size:15px; }
+    .page{ padding:24px 12px 32px; }
+    header{ padding:22px 20px 10px; border-radius:18px; }
+    .sub{ margin:0 0 24px; font-size:15.5px; }
     h1{ margin:0 0 12px; }
-    .panel{ padding:32px 18px 28px; border-radius:16px; }
-    .dial-wrap{ width:220px; height:220px; }
-    .readout{ font-size:36px; }
+    .panel{ padding:36px 16px 30px; border-radius:18px; }
+    .dial-wrap{ width:clamp(240px, 76vw, 310px); height:clamp(240px, 76vw, 310px); }
+    .readout{ font-size:clamp(34px, 10vw, 46px); }
     .controls{ max-width:100%; }
     .field-row{ flex-wrap:nowrap; }
-    input[type=number]{ width:76px; }
-    .btn-primary{ width:100%; text-align:center; }
+    input[type=number]{ width:82px; height:46px; font-size:16px; }
+    select{ height:46px; font-size:16px; }
+    .btn-primary{ width:100%; text-align:center; padding:15px 20px; font-size:16px; }
+    .btn-ghost{ padding:13px 16px; font-size:15px; }
     .foot-note p{ font-size:12px; padding:0 8px; }
   }
   @media (max-width:380px){
-    .page{ padding:26px 12px 28px; }
-    header{ padding:18px 14px 6px; }
+    .page{ padding:18px 8px 28px; }
+    header{ padding:18px 16px 8px; }
     .eyebrow{ font-size:11px; }
-    .panel{ padding:26px 14px 24px; }
-    .dial-wrap{ width:188px; height:188px; }
-    .readout{ font-size:30px; }
-    .chip{ padding:6px 10px; font-size:12px; }
+    .panel{ padding:30px 12px 26px; }
+    .dial-wrap{ width:clamp(215px, 80vw, 260px); height:clamp(215px, 80vw, 260px); }
+    .readout{ font-size:clamp(30px, 11vw, 38px); }
+    .chip{ padding:7px 12px; font-size:12.5px; }
     .ticks-row{ gap:4px; }
   }
   @media (max-width:600px) and (orientation:landscape){
-    .dial-wrap{ width:180px; height:180px; }
+    .dial-wrap{ width:200px; height:200px; }
   }
   @supports (padding: max(0px)){
     .page{
@@ -332,7 +334,7 @@
   <header>
     <p class="eyebrow">No. 001 — For mumma, with love</p>
     <h1>Love you mumma, eat well.</h1>
-    <p class="sub">A gentle reminder that repeats every interval, because eating well matters. Set how often and for how long, it'll keep nudging you until time's up.</p>
+    <p class="sub">A gentle reminder that repeats every interval, because eating well matters. Set how often and for how long — it'll keep nudging you until time's up.</p>
   </header>
 
   <main class="panel">
