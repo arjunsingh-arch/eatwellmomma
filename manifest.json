@@ -1,11 +1,18 @@
 {
-  "name": "Love you Mumma",
-  "short_name": "Eat Well",
+  "name": "Love you mumma — eat well reminder",
+  "short_name": "Eat well, mumma",
   "start_url": "./index.html",
+  "scope": "./",
   "display": "standalone",
   "background_color": "#FCE4E9",
-  "theme_color": "#E0264B",
+  "theme_color": "#FCE4E9",
   "icons": [
+    {
+      "src": "icon.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
     {
       "src": "icon.png",
       "sizes": "512x512",
