@@ -1,0 +1,16 @@
+{
+  "name": "Love you Mumma",
+  "short_name": "Eat Well",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#FCE4E9",
+  "theme_color": "#E0264B",
+  "icons": [
+    {
+      "src": "icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
