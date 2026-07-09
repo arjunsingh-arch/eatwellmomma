@@ -1,6 +1,6 @@
 {
-  "name": "Love you mumma — eat well reminder",
-  "short_name": "Eat well, mumma",
+  "name": "Bite!",
+  "short_name": "Bite!",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
